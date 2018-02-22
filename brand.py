@@ -5,7 +5,7 @@ from flask_babel import gettext as _, lazy_gettext
 from galatea.tryton import tryton
 from catalog.catalog import catalog_ordered
 
-manufacturer = Blueprint('manufacturer', __name__, template_folder='templates')
+brand = Blueprint('brand', __name__, template_folder='templates')
 
 DISPLAY_MSG = lazy_gettext('Displaying <b>{start} - {end}</b> of <b>{total}</b>')
 
@@ -14,19 +14,15 @@ SHOP = current_app.config.get('TRYTON_SALE_SHOP')
 LIMIT = current_app.config.get('TRYTON_PAGINATION_CATALOG_LIMIT', 20)
 
 Website = tryton.pool.get('galatea.website')
-WebSiteManufacturer = tryton.pool.get('galatea.website')
+ProductBrand = tryton.pool.get('product.brand')
 Template = tryton.pool.get('product.template')
-Product = tryton.pool.get('product.product')
 
-MANUFACTURER_TEMPLATE_FILTERS = []
+BRAND_TEMPLATE_FILTERS = []
 
-@manufacturer.route("/manufacturer/<slug>", methods=["GET", "POST"], endpoint="manufacturer_product_en")
-@manufacturer.route("/fabricante/<slug>", methods=["GET", "POST"], endpoint="manufacturer_product_es")
-@manufacturer.route("/fabricant/<slug>", methods=["GET", "POST"], endpoint="manufacturer_product_ca")
+@brand.route("/<slug>", endpoint="brand")
 @tryton.transaction()
-def manufacturer_products(lang, slug):
-    '''Products by manufacturer'''
-
+def brand_products(lang, slug):
+    '''Products by brand'''
     websites = Website.search([
         ('id', '=', GALATEA_WEBSITE),
         ], limit=1)
@@ -34,16 +30,12 @@ def manufacturer_products(lang, slug):
         abort(404)
     website, = websites
 
-    manufacturers = website.manufacturers
-
-    manufacturer = None
-    for m in website.manufacturers:
-        if m.slug == slug:
-            manufacturer = m
-            break
-    if not manufacturer:
-        # change 404 to all manufacturer list
-        return redirect(url_for('.manufacturer_'+g.language, lang=g.language))
+    product_brands = ProductBrand.search([('slug', '=', slug)], limit=1)
+    if not product_brands:
+        # change 404 to all brand list
+        return redirect(url_for('.brands', lang=g.language))
+    else:
+        product_brand = product_brands[0]
 
     # limit
     if request.args.get('limit'):
@@ -67,24 +59,24 @@ def manufacturer_products(lang, slug):
     except ValueError:
         page = 1
 
-    domain_filter = session.get('manufacturer_filter', [])
+    domain_filter = session.get('brand_filter', [])
     if request.form:
         domain_filter = []
         domain_filter_keys = set()
         for k, v in request.form.iteritems():
-            if k in MANUFACTURER_TEMPLATE_FILTERS:
+            if k in BRAND_TEMPLATE_FILTERS:
                 domain_filter_keys.add(k)
 
         for k in list(domain_filter_keys):
             domain_filter.append((k, 'in', request.form.getlist(k)))
 
-    session['manufacturer_filter'] = domain_filter
+    session['brand_filter'] = domain_filter
 
     domain = [
         ('esale_available', '=', True),
         ('esale_active', '=', True),
         ('shops', 'in', [SHOP]),
-        ('manufacturer', '=', manufacturer.party.id),
+        ('brand', '=', product_brand),
         ] + domain_filter
     total = Template.search_count(domain)
     offset = (page-1)*limit
@@ -98,28 +90,25 @@ def manufacturer_products(lang, slug):
         'slug': url_for('catalog.catalog', lang=g.language),
         'name': _('Catalog'),
         }, {
-        'slug': url_for('.manufacturer_'+g.language, lang=g.language),
-        'name': _('Manufacturers'),
+        'slug': url_for('.brands', lang=g.language),
+        'name': _('Brands'),
         }, {
-        'slug': url_for('.manufacturer_product_'+g.language, lang=g.language, slug=slug),
-        'name': manufacturer.party.name,
+        'slug': url_for('.brand', lang=g.language, slug=slug),
+        'name': product_brand.name,
         }]
 
-    return render_template('catalog-manufacturer.html',
+    return render_template('catalog-brand.html',
             website=website,
-            manufacturer=manufacturer,
-            manufacturers=manufacturers,
+            brand=product_brand,
             breadcrumbs=breadcrumbs,
             pagination=pagination,
             products=products,
             )
 
-@manufacturer.route("/manufacturer/", endpoint="manufacturer_en")
-@manufacturer.route("/fabricante/", endpoint="manufacturer_es")
-@manufacturer.route("/fabricant/", endpoint="manufacturer_ca")
+@brand.route("/", endpoint="brands")
 @tryton.transaction()
-def manufacturer_all(lang):
-    '''All manufacturers'''
+def brand_all(lang):
+    '''All brands'''
     websites = Website.search([
         ('id', '=', GALATEA_WEBSITE),
         ], limit=1)
@@ -127,19 +116,19 @@ def manufacturer_all(lang):
         abort(404)
     website, = websites
 
-    manufacturers = website.manufacturers
+    brands = ProductBrand.search([])
 
     #breadcumbs
     breadcrumbs = [{
         'slug': url_for('catalog.catalog', lang=g.language),
         'name': _('Catalog'),
         }, {
-        'slug': url_for('.manufacturer_'+g.language, lang=g.language),
-        'name': _('Manufacturers'),
+        'slug': url_for('.brands', lang=g.language),
+        'name': _('Brands'),
         }]
 
-    return render_template('catalog-manufacturers.html',
+    return render_template('catalog-brands.html',
             website=website,
-            manufacturers=manufacturers,
+            brands=brands,
             breadcrumbs=breadcrumbs,
             )

@@ -1,5 +1,5 @@
-Installing flask-galatea_manufacturer
-=====================================
+Installing flask-galatea_brand
+==============================
 
 Prerequisites
 -------------
@@ -7,15 +7,16 @@ Prerequisites
  * Python 2.7 or later (http://www.python.org/)
  * trytond (http://www.tryton.org/)
  * trytond-galatea
- * trytond-galatea_manufacturer
+ * trytond-galatea_brand
+ * trytond-product_brand
 
 Installation
 ------------
 
-Once you've downloaded and unpacked the flask-galatea-cms source release,
-copy galatea-cms directory in main flask app and rename to cms.
+Once you've downloaded and unpacked the flask-galatea-brand source release,
+copy galatea-brand directory in main flask app and rename to brand.
 
 Edit your App flask and register a new blueprint:
 
-from cms import cms
-app.register_blueprint(cms, url_prefix='/<lang>')
+from brand import brand
+app.register_blueprint(brand, url_prefix='/<lang>')
