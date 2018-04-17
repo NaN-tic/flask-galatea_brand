@@ -1,2 +1,2 @@
-from manufacturer import *
+from brand import *
 
